@@ -1,4 +1,4 @@
-import com.radustavila.bleexplorer.buildlogic.libs
+import com.radustavila.myblesense.buildlogic.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.dependencies
@@ -10,9 +10,9 @@ import org.gradle.kotlin.dsl.project
  */
 class AndroidFeatureConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
-        pluginManager.apply("bleexplorer.android.library")
-        pluginManager.apply("bleexplorer.android.compose")
-        pluginManager.apply("bleexplorer.hilt")
+        pluginManager.apply("myblesense.android.library")
+        pluginManager.apply("myblesense.android.compose")
+        pluginManager.apply("myblesense.hilt")
 
         dependencies {
             add("implementation", project(":domain"))

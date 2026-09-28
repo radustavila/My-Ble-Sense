@@ -1,18 +1,18 @@
 plugins {
-    alias(libs.plugins.bleexplorer.android.application)
-    alias(libs.plugins.bleexplorer.android.compose)
-    alias(libs.plugins.bleexplorer.hilt)
+    alias(libs.plugins.myblesense.android.application)
+    alias(libs.plugins.myblesense.android.compose)
+    alias(libs.plugins.myblesense.hilt)
     alias(libs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = "com.radustavila.bleexplorer"
+    namespace = "com.radustavila.myblesense"
 
     // Used to keep verbose BLE logging out of release builds.
     buildFeatures.buildConfig = true
 
     defaultConfig {
-        applicationId = "com.radustavila.bleexplorer"
+        applicationId = "com.radustavila.myblesense"
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

@@ -1,4 +1,4 @@
-import com.radustavila.bleexplorer.buildlogic.libs
+import com.radustavila.myblesense.buildlogic.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.dependencies

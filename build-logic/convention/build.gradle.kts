@@ -2,7 +2,7 @@ plugins {
     `kotlin-dsl`
 }
 
-group = "com.radustavila.bleexplorer.buildlogic"
+group = "com.radustavila.myblesense.buildlogic"
 
 java {
     toolchain {
@@ -20,27 +20,27 @@ dependencies {
 gradlePlugin {
     plugins {
         register("androidApplication") {
-            id = "bleexplorer.android.application"
+            id = "myblesense.android.application"
             implementationClass = "AndroidApplicationConventionPlugin"
         }
         register("androidLibrary") {
-            id = "bleexplorer.android.library"
+            id = "myblesense.android.library"
             implementationClass = "AndroidLibraryConventionPlugin"
         }
         register("androidCompose") {
-            id = "bleexplorer.android.compose"
+            id = "myblesense.android.compose"
             implementationClass = "AndroidComposeConventionPlugin"
         }
         register("androidFeature") {
-            id = "bleexplorer.android.feature"
+            id = "myblesense.android.feature"
             implementationClass = "AndroidFeatureConventionPlugin"
         }
         register("jvmLibrary") {
-            id = "bleexplorer.jvm.library"
+            id = "myblesense.jvm.library"
             implementationClass = "JvmLibraryConventionPlugin"
         }
         register("hilt") {
-            id = "bleexplorer.hilt"
+            id = "myblesense.hilt"
             implementationClass = "HiltConventionPlugin"
         }
     }

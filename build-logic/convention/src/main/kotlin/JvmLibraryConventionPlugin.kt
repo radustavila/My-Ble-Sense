@@ -1,5 +1,5 @@
-import com.radustavila.bleexplorer.buildlogic.configureKotlinJvm
-import com.radustavila.bleexplorer.buildlogic.configureUnitTests
+import com.radustavila.myblesense.buildlogic.configureKotlinJvm
+import com.radustavila.myblesense.buildlogic.configureUnitTests
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 

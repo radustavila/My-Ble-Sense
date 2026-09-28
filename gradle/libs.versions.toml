@@ -72,9 +72,9 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 
 # Convention plugins defined in :build-logic
-bleexplorer-android-application = { id = "bleexplorer.android.application" }
-bleexplorer-android-library = { id = "bleexplorer.android.library" }
-bleexplorer-android-compose = { id = "bleexplorer.android.compose" }
-bleexplorer-android-feature = { id = "bleexplorer.android.feature" }
-bleexplorer-jvm-library = { id = "bleexplorer.jvm.library" }
-bleexplorer-hilt = { id = "bleexplorer.hilt" }
+myblesense-android-application = { id = "myblesense.android.application" }
+myblesense-android-library = { id = "myblesense.android.library" }
+myblesense-android-compose = { id = "myblesense.android.compose" }
+myblesense-android-feature = { id = "myblesense.android.feature" }
+myblesense-jvm-library = { id = "myblesense.jvm.library" }
+myblesense-hilt = { id = "myblesense.hilt" }

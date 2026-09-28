@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.bleexplorer.jvm.library)
+    alias(libs.plugins.myblesense.jvm.library)
     `java-test-fixtures`
 }
 

@@ -1,12 +1,12 @@
 plugins {
-    alias(libs.plugins.bleexplorer.android.feature)
+    alias(libs.plugins.myblesense.android.feature)
     alias(libs.plugins.kotlin.serialization)
 }
 
 android {
     defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-    namespace = "com.radustavila.bleexplorer.feature.devicedetails"
+    namespace = "com.radustavila.myblesense.feature.devicedetails"
 }
 
 dependencies {

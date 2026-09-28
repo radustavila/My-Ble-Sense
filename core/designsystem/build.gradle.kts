@@ -1,10 +1,10 @@
 plugins {
-    alias(libs.plugins.bleexplorer.android.library)
-    alias(libs.plugins.bleexplorer.android.compose)
+    alias(libs.plugins.myblesense.android.library)
+    alias(libs.plugins.myblesense.android.compose)
 }
 
 android {
-    namespace = "com.radustavila.bleexplorer.core.designsystem"
+    namespace = "com.radustavila.myblesense.core.designsystem"
 }
 
 dependencies {

@@ -1,6 +1,6 @@
 import com.android.build.api.dsl.LibraryExtension
-import com.radustavila.bleexplorer.buildlogic.configureAndroidKotlin
-import com.radustavila.bleexplorer.buildlogic.configureUnitTests
+import com.radustavila.myblesense.buildlogic.configureAndroidKotlin
+import com.radustavila.myblesense.buildlogic.configureUnitTests
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure

@@ -1,10 +1,10 @@
 plugins {
-    alias(libs.plugins.bleexplorer.android.library)
-    alias(libs.plugins.bleexplorer.hilt)
+    alias(libs.plugins.myblesense.android.library)
+    alias(libs.plugins.myblesense.hilt)
 }
 
 android {
-    namespace = "com.radustavila.bleexplorer.core.datastore"
+    namespace = "com.radustavila.myblesense.core.datastore"
 }
 
 dependencies {

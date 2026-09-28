@@ -21,7 +21,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BLE-Explorer"
+rootProject.name = "MyBleSense"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 

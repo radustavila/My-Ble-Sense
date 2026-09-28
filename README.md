@@ -1,4 +1,4 @@
-# BLE Explorer
+# MyBleSense
 
 An Android app that scans for nearby **Bluetooth Low Energy** peripherals, shows what they
 advertise (name, signal strength, service UUIDs, manufacturer data, service data, TX power) and —
@@ -241,7 +241,7 @@ list can show it — and connect to it — without a scan.
   implemented in `:core:datastore` with a Preferences DataStore holding two strings. No Android
   Bluetooth/GATT object is persisted. An unreadable file reads as "no known device".
 * **Remembering.** `TrackKnownDeviceUseCase` runs in the application scope (started from
-  `BleExplorerApplication`). Every connection that reaches "services discovered" — whichever screen
+  `MyBleSenseApplication`). Every connection that reaches "services discovered" — whichever screen
   opened it, reconnections included — replaces the known device. The name comes from the scan
   session, or the entry already remembered for that id. A scan that sees the known device updates
   its entry (new name) instead of adding another.
@@ -257,6 +257,15 @@ list can show it — and connect to it — without a scan.
   merged into the card. The manual scan is unchanged.
 * **Details without a scan.** The details screen falls back to the known device when the scan
   session does not have it; advertising fields are shown as not available.
+* **Forget device.** The card's "Forget device" action (`ScannerEvent.ForgetKnownDevice`) runs
+  `ForgetKnownDeviceUseCase`: a link to the known device that is open or opening is disconnected
+  first (an attempt in flight is cancelled), then `KnownDeviceRepository.clear()` removes both
+  strings. The card disappears and the list is back to first-launch behaviour — the next manual
+  scan lists the device like any other, and nothing auto-connects to it. Only the app's record is
+  removed; the Android Bluetooth pairing is left untouched. It runs in the application scope, so
+  leaving the screen midway cannot leave the device disconnected but still remembered. A failed
+  disconnect or storage write keeps the device (`BleError.KnownDeviceNotForgotten`). Connecting to
+  it again remembers it again.
 
 ### GATT operation serialization
 
@@ -455,12 +464,12 @@ writes, notifications and every failure mode are driven by the test, never by a 
 | `:domain` GATT | initial disconnected state, connecting → connected, service discovery (populated, empty, unknown UUIDs), connection failure/timeout, disconnect, unexpected disconnect, read success/failure/timeout/while-disconnected, unknown characteristic, property validation for read/write/subscribe, write mode selection, notification enable/disable, notification streams, link lost while subscribed |
 | `:core:bluetooth` | **operation queue**: sequential execution, second operation waits, failure does not block the queue, rejected operation, timeout without deadlock, disconnect clears pending and queued work; property bit-mask decoding, GATT status mapping, SIG UUID names, scan error codes |
 | `:core:common` | hex formatting and parsing (valid, malformed, round-trip), printable-UTF-8 detection |
-| `:domain` known device | scan-result merge, auto-connect policy (once, Bluetooth ready, idle link), remembering on connection, replacement by another device, name kept without a scan, scan update without duplicate, storage failure |
-| `:core:datastore` | real DataStore file: empty start, save/read back, replacement (name included), survives restart, observers, unreadable file |
-| `:feature:scanner` | ViewModel: initial state, start/stop, discovery, RSSI update without duplication, timeout, sorting, Bluetooth off mid-scan, no auto-restart, permission denial/permanent denial/revocation, scan failure, retry, session reset; known device shown without scan, single auto-connect, Bluetooth off / no permission, manual connect/failure/cancel, available vs unavailable, no duplicate, disconnect, lost link, ownership on teardown; status mapping |
+| `:domain` known device | scan-result merge, auto-connect policy (once, Bluetooth ready, idle link), remembering on connection, replacement by another device, name kept without a scan, scan update without duplicate, storage failure; forgetting (link closed first, other device's link kept, nothing to forget, storage failure), a forgotten device not re-saved by a scan but remembered again on connection |
+| `:core:datastore` | real DataStore file: empty start, save/read back, replacement (name included), survives restart, observers, unreadable file, forget (name included, across restart) |
+| `:feature:scanner` | ViewModel: initial state, start/stop, discovery, RSSI update without duplication, timeout, sorting, Bluetooth off mid-scan, no auto-restart, permission denial/permanent denial/revocation, scan failure, retry, session reset; known device shown without scan, single auto-connect, Bluetooth off / no permission, manual connect/failure/cancel, available vs unavailable, no duplicate, disconnect, lost link, ownership on teardown; forget (connected, disconnected, while connecting, listed again by a scan without auto-connect, storage failure, busy state ignores a second tap); status mapping |
 | `:feature:device-details` | advertising, hardware event and connection-status mapping; ViewModel: connect state transitions, failure/timeout/service-discovery copy, double-connect ignored, disconnect, link lost, bounded reconnection (back-off, give up, cancel on disconnect/leave/Bluetooth off), subscription restored after reconnect, touch duration, live intensity and touch statistics, connection to another device, teardown on leaving the screen, known-device fallback, a link it did not open is kept |
 | `:feature:gatt-inspector` | ViewModel: service naming and expansion, read value/decoding, read failure, valid and invalid hex writes, write failure, notification on/off, incoming values (newest first), subscription failure, disconnect clearing state; standard-characteristic decoding rules |
-| Instrumented (Compose) | scanner list and states, known device card (connect, available without duplicate, open/disconnect, cancel, unavailable, Bluetooth off); details rendering, connect/inspector actions; inspector services, characteristics, values, actions, disabled busy actions, unknown UUIDs, notification list, empty/discovering/disconnected states |
+| Instrumented (Compose) | scanner list and states, known device card (connect, available without duplicate, open/disconnect, cancel, unavailable, Bluetooth off, forget, disabled while forgetting, forgotten device listed as a scan result); details rendering, connect/inspector actions; inspector services, characteristics, values, actions, disabled busy actions, unknown UUIDs, notification list, empty/discovering/disconnected states |
 
 ```bash
 ./gradlew test testDebugUnitTest      # 302 unit tests
@@ -485,8 +494,8 @@ writes, notifications and every failure mode are driven by the test, never by a 
   common bug of showing users a dead-end settings prompt on first launch.
 * **Adapter state merged into the scan.** Turning Bluetooth off during a scan fails the flow at the
   repository level, so every consumer is cancelled consistently instead of hanging silently.
-* **Convention plugins.** Build logic lives in `build-logic/` (`bleexplorer.android.feature`,
-  `bleexplorer.hilt`, …), so module build files stay a handful of lines each.
+* **Convention plugins.** Build logic lives in `build-logic/` (`myblesense.android.feature`,
+  `myblesense.hilt`, …), so module build files stay a handful of lines each.
 * **A GATT queue that cannot wedge.** Timeout, cancellation and disconnect all release the lock and
   clear the pending continuation, so one unanswered request cannot disable every later operation —
   the failure mode most hand-rolled BLE queues ship with.

@@ -60,7 +60,7 @@ The emulator has no Bluetooth: scanning/connecting only works on real hardware (
 
 - `KnownDevice(id, name)` + `KnownDeviceRepository` in `:domain`; DataStore implementation in
   `:core:datastore` (only strings — never persist Android BLE objects).
-- `TrackKnownDeviceUseCase` (app scope, started in `BleExplorerApplication`) saves every connection
+- `TrackKnownDeviceUseCase` (app scope, started in `MyBleSenseApplication`) saves every connection
   that reaches services discovered and merges scan results with the known id. Don't save from
   ViewModels.
 - `ScannerViewModel` shows it before any scan and auto-connects **once** per ViewModel via
@@ -68,6 +68,10 @@ The emulator has no Bluetooth: scanning/connecting only works on real hardware (
   come from `KnownDeviceMapper.kt`; scan results with the known id are excluded via `otherDevices`.
 - The details screen falls back to the known device when the scan session lacks it
   (`rssiDbm == null`).
+- "Forget device" (scanner card) → `ForgetKnownDeviceUseCase`: disconnects a link to it that is
+  open/opening, **then** `KnownDeviceRepository.clear()`. Runs in `@ApplicationScope`. Never touches
+  the Android bond. `TrackKnownDeviceUseCase.updateFromScans` must not `filterNotNull()` before
+  `combine`, or the last known device lingers and a scan re-saves it after forgetting.
 
 ## ESP32 POC peripheral
 
