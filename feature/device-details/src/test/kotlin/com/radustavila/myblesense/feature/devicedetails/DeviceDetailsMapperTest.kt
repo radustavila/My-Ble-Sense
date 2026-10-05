@@ -353,4 +353,24 @@ class DeviceDetailsMapperTest {
 
         assertThat(status(other)).isEqualTo(ConnectionStatus.DISCONNECTED)
     }
+
+    @Test
+    fun `drops a touch held for less than 0_1s`() {
+        val ui = HardwareEventsUiState()
+            .plus(HardwareEvent.TouchPressed(1_000), sequence = 1, zone = ZoneOffset.UTC)
+            .plus(HardwareEvent.TouchReleased(1_050, durationMillis = 50), sequence = 2, zone = ZoneOffset.UTC)
+
+        assertThat(ui.entries).isEmpty()
+        assertThat(ui.lastTouch).isNull()
+        assertThat(ui.isTouchPressed).isFalse()
+    }
+
+    @Test
+    fun `keeps a touch held for exactly 0_1s`() {
+        val ui = HardwareEventsUiState()
+            .plus(HardwareEvent.TouchPressed(1_000), sequence = 1, zone = ZoneOffset.UTC)
+            .plus(HardwareEvent.TouchReleased(1_100, durationMillis = 100), sequence = 2, zone = ZoneOffset.UTC)
+
+        assertThat(ui.entries).hasSize(1)
+    }
 }

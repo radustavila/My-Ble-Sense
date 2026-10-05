@@ -62,6 +62,9 @@ object PocTouchEvents {
 
     val INTENSITY_RANGE: IntRange = 0..100
 
+    /** Touches held for less than this are sensor glitches, not shown in the history. */
+    const val MIN_TOUCH_MILLIS = 100L
+
     /**
      * The percentage carried by a `TOUCH_INTENSITY:<n>` event, or `null` when [text] is not one or
      * its value is not an integer within [INTENSITY_RANGE]: a value the firmware should never send

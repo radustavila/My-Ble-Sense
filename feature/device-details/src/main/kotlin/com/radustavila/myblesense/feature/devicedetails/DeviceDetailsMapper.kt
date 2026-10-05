@@ -6,6 +6,7 @@ import com.radustavila.myblesense.domain.model.BleDevice
 import com.radustavila.myblesense.domain.model.GattConnection
 import com.radustavila.myblesense.domain.model.GattConnectionState
 import com.radustavila.myblesense.domain.model.HardwareEvent
+import com.radustavila.myblesense.domain.model.PocTouchEvents
 import com.radustavila.myblesense.domain.model.KnownDevice
 import com.radustavila.myblesense.domain.model.PocService
 import com.radustavila.myblesense.domain.model.ReconnectionStatus
@@ -160,7 +161,14 @@ internal fun HardwareEventsUiState.plus(
             liveIntensityPercent = null,
         )
 
-        is HardwareEvent.TouchReleased -> {
+        // A touch shorter than the minimum is a glitch: its press entry is removed, nothing is kept.
+        is HardwareEvent.TouchReleased -> if (event.isTooShort()) {
+            copy(
+                entries = entries.filterNot { it is HardwareEventEntryUi.Touch && it.isActive },
+                isTouchPressed = false,
+                liveIntensityPercent = null,
+            )
+        } else {
             val active = entries.indexOfLast { it is HardwareEventEntryUi.Touch && it.isActive }
             val touch = HardwareEventEntryUi.Touch(
                 key = if (active >= 0) entries[active].key else sequence,
@@ -204,6 +212,9 @@ internal fun HardwareEventsUiState.endActiveTouch(): HardwareEventsUiState = cop
     isTouchPressed = false,
     liveIntensityPercent = null,
 )
+
+private fun HardwareEvent.TouchReleased.isTooShort(): Boolean =
+    (durationMillis ?: Long.MAX_VALUE) < PocTouchEvents.MIN_TOUCH_MILLIS
 
 internal fun HardwareEvent.TouchReleased.toStatsUi(): TouchStatsUi = TouchStatsUi(
     duration = "Duration: ${formatTouchDuration(durationMillis)}",
