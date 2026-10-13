@@ -1,15 +1,19 @@
 plugins {
-    alias(libs.plugins.myblesense.android.library)
-    alias(libs.plugins.myblesense.hilt)
+    alias(libs.plugins.myblesense.kmp.library)
 }
 
-android {
-    namespace = "com.radustavila.myblesense.core.common"
-}
-
-dependencies {
-    api(libs.kotlinx.coroutines.android)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.truth)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.kotlinx.coroutines.core)
+            api(libs.kotlinx.datetime)
+            implementation(libs.koin.core)
+        }
+        androidMain.dependencies {
+            api(libs.kotlinx.coroutines.android)
+        }
+        commonTest.dependencies {
+            implementation(projects.domain.testing)
+        }
+    }
 }

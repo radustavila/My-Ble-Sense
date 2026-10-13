@@ -14,7 +14,6 @@ dependencies {
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.compose.gradlePlugin)
-    compileOnly(libs.ksp.gradlePlugin)
 }
 
 gradlePlugin {
@@ -23,25 +22,21 @@ gradlePlugin {
             id = "myblesense.android.application"
             implementationClass = "AndroidApplicationConventionPlugin"
         }
-        register("androidLibrary") {
-            id = "myblesense.android.library"
-            implementationClass = "AndroidLibraryConventionPlugin"
-        }
         register("androidCompose") {
             id = "myblesense.android.compose"
             implementationClass = "AndroidComposeConventionPlugin"
         }
-        register("androidFeature") {
-            id = "myblesense.android.feature"
-            implementationClass = "AndroidFeatureConventionPlugin"
+        register("kmpLibrary") {
+            id = "myblesense.kmp.library"
+            implementationClass = "KmpLibraryConventionPlugin"
         }
-        register("jvmLibrary") {
-            id = "myblesense.jvm.library"
-            implementationClass = "JvmLibraryConventionPlugin"
+        register("kmpCompose") {
+            id = "myblesense.kmp.compose"
+            implementationClass = "KmpComposeConventionPlugin"
         }
-        register("hilt") {
-            id = "myblesense.hilt"
-            implementationClass = "HiltConventionPlugin"
+        register("kmpFeature") {
+            id = "myblesense.kmp.feature"
+            implementationClass = "KmpFeatureConventionPlugin"
         }
     }
 }

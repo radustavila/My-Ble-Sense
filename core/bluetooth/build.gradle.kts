@@ -1,20 +1,20 @@
 plugins {
-    alias(libs.plugins.myblesense.android.library)
-    alias(libs.plugins.myblesense.hilt)
+    alias(libs.plugins.myblesense.kmp.library)
 }
 
-android {
-    namespace = "com.radustavila.myblesense.core.bluetooth"
-}
-
-dependencies {
-    api(projects.domain)
-    implementation(projects.core.common)
-    implementation(libs.androidx.core.ktx)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.truth)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.turbine)
-    testImplementation(testFixtures(projects.domain))
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            api(projects.domain)
+            implementation(projects.core.common)
+            implementation(libs.koin.core)
+        }
+        androidMain.dependencies {
+            implementation(libs.androidx.core.ktx)
+            implementation(libs.koin.android)
+        }
+        commonTest.dependencies {
+            implementation(projects.domain.testing)
+        }
+    }
 }

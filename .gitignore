@@ -9,3 +9,9 @@
 .cxx
 local.properties
 build/
+
+# Kotlin Multiplatform / iOS
+.kotlin/
+xcuserdata/
+*.xcuserstate
+DerivedData/

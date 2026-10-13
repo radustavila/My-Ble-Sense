@@ -9,7 +9,8 @@ import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
-import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+
+internal fun VersionCatalog.library(alias: String) = findLibrary(alias).get()
 
 internal val Project.libs: VersionCatalog
     get() = extensions.getByType<VersionCatalogsExtension>().named("libs")
@@ -37,17 +38,11 @@ internal fun Project.configureAndroidKotlin(commonExtension: CommonExtension) {
     }
 }
 
-internal fun Project.configureKotlinJvm() {
-    extensions.getByType<KotlinJvmProjectExtension>().apply {
-        jvmToolchain(javaVersion.majorVersion.toInt())
-        compilerOptions { configureFreeCompilerArgs() }
-    }
-}
-
-private fun org.jetbrains.kotlin.gradle.dsl.KotlinCommonCompilerOptions.configureFreeCompilerArgs() {
+internal fun org.jetbrains.kotlin.gradle.dsl.KotlinCommonCompilerOptions.configureFreeCompilerArgs() {
     freeCompilerArgs.addAll(
         // Coroutines Flow APIs used by the BLE layer are still marked experimental.
         "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        "-opt-in=kotlin.time.ExperimentalTime",
     )
 }
 

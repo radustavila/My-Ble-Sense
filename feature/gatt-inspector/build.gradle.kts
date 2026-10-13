@@ -1,18 +1,29 @@
 plugins {
-    alias(libs.plugins.myblesense.android.feature)
-    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.myblesense.kmp.feature)
 }
 
-android {
-    defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+kotlin {
+    android {
+        // Compose Multiplatform's resource tasks for the device tests need Android resources on.
+        androidResources { enable = true }
 
-    namespace = "com.radustavila.myblesense.feature.gattinspector"
-}
+        // Compose UI tests; they need an API <= 36 device, see CLAUDE.md.
+        withDeviceTest {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
+    }
 
-dependencies {
-    // Only for the Bluetooth SIG UUID names; the GATT stack itself is reached through use cases.
-    implementation(projects.core.bluetooth)
-    implementation(libs.kotlinx.serialization.json)
-
-    testImplementation(testFixtures(projects.domain))
+    sourceSets {
+        commonMain.dependencies {
+            // Only for the Bluetooth SIG names / platform permissions; GATT is reached through use cases.
+            implementation(projects.core.bluetooth)
+        }
+        getByName("androidDeviceTest").dependencies {
+            implementation(libs.androidx.test.ext.junit)
+            implementation(libs.truth)
+            implementation(project.dependencies.platform(libs.androidx.compose.bom))
+            implementation(libs.androidx.compose.ui.test.junit4)
+            implementation(libs.androidx.compose.ui.test.manifest)
+        }
+    }
 }

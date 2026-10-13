@@ -1,6 +1,6 @@
 # MyBleSense
 
-An Android app that scans for nearby **Bluetooth Low Energy** peripherals, shows what they
+An Android **and iOS** app (Kotlin Multiplatform + Compose Multiplatform) that scans for nearby **Bluetooth Low Energy** peripherals, shows what they
 advertise (name, signal strength, service UUIDs, manufacturer data, service data, TX power) and —
 since Phase 2 — connects to them and inspects their **GATT** database: services, characteristics,
 properties, reads, writes and notifications.
@@ -11,11 +11,12 @@ It is a generic BLE tool: nothing in it is specific to a vendor or to a particul
 | | |
 |---|---|
 | Language | Kotlin 2.4, Coroutines + Flow |
-| UI | Jetpack Compose, Material 3 |
+| Platforms | Android and iOS from one codebase: Kotlin Multiplatform, ~90 % of the code in `commonMain` |
+| UI | Compose Multiplatform, Material 3 |
 | Architecture | Clean Architecture, multi-module, unidirectional data flow |
-| DI | Hilt (KSP) |
+| DI | Koin |
 | Build | AGP 9.4 / Gradle 9.7, version catalog, convention plugins |
-| SDK | minSdk 26, target/compile 37 |
+| SDK | Android minSdk 26, target/compile 37 · iOS 16+ (CoreBluetooth) |
 
 ---
 
@@ -26,11 +27,13 @@ Three layers, strictly separated by Gradle modules. Dependencies only ever point
 
 ```mermaid
 graph TD
-    app[":app"] --> scanner[":feature:scanner"]
-    app --> details[":feature:device-details"]
-    app --> inspector[":feature:gatt-inspector"]
-    app --> bluetooth[":core:bluetooth"]
-    app --> ds[":core:designsystem"]
+    app[":app (Android shell)"] --> shared[":shared:app"]
+    ios["iosApp/ (Xcode shell)"] --> shared
+    shared --> scanner[":feature:scanner"]
+    shared --> details[":feature:device-details"]
+    shared --> inspector[":feature:gatt-inspector"]
+    shared --> bluetooth[":core:bluetooth"]
+    shared --> ds[":core:designsystem"]
 
     scanner --> domain[":domain"]
     scanner --> ds
@@ -48,27 +51,48 @@ graph TD
 
     bluetooth --> domain
     bluetooth --> common
-    bluetooth --> android[["Android BLE APIs"]]
+    bluetooth --> android[["androidMain: Android BLE APIs"]]
+    bluetooth --> corebt[["iosMain: CoreBluetooth"]]
 ```
 
 ### Modules
 
-| Module | Responsibility | Knows about Android? |
+| Module | Responsibility | Platform code |
 |---|---|---|
-| `:app` | Application, Hilt setup, navigation host, wiring the features together | yes |
-| `:feature:scanner` | Scanner screen, ViewModel, UI state, permission/enable-Bluetooth flows, known device entry (startup auto-connect) | yes |
-| `:feature:device-details` | Details screen, advertising presentation, connect/disconnect, **owns the lifetime of the links it opens** | yes |
-| `:feature:gatt-inspector` | Services/characteristics UI, read / write / notify actions, raw value presentation | yes |
-| `:core:bluetooth` | `BluetoothLeScanner`, `ScanCallback`, `BluetoothGatt`, `BluetoothGattCallback`, the GATT operation queue, adapter state, permission checks, advertising parsing | yes |
-| `:core:datastore` | Preferences DataStore implementation of `KnownDeviceRepository` (device id + name only) | yes |
-| `:core:designsystem` | Material 3 theme, shared Compose primitives, error copy | yes (Compose only) |
-| `:core:common` | Hex/MAC formatting, logging facade, dispatcher qualifiers | yes (minimal) |
-| `:domain` | Models, repository/scanner/GATT interfaces, use cases, de-duplication, sorting and operation rules | **no — plain Kotlin JVM module** |
+| `:app` | Android shell: `Application` (starts the graph), `MainActivity` (`setContent { App() }`) | Android only |
+| `iosApp/` | Xcode project: SwiftUI `@main` app hosting `MainViewController()`, `Info.plist` | iOS only |
+| `:shared:app` | `App()` root composable, navigation host, Koin graph (`startApp`), use-case wiring; produces the `Shared` iOS framework | `iosMain`: `MainViewController` |
+| `:feature:scanner` | Scanner screen, ViewModel, UI state, known device entry (startup auto-connect) | `expect rememberBlePermissionController` (runtime permissions / enable-Bluetooth on Android, authorization + Settings link on iOS) |
+| `:feature:device-details` | Details screen, advertising presentation, connect/disconnect, **owns the lifetime of the links it opens** | none |
+| `:feature:gatt-inspector` | Services/characteristics UI, read / write / notify actions, raw value presentation | none |
+| `:core:bluetooth` | `commonMain`: GATT operation queue, repositories, SIG/company tables. `androidMain`: `BluetoothLeScanner`, `BluetoothGatt`, adapter state, permissions. `iosMain`: `CBCentralManager`, `CBPeripheral` delegates | both |
+| `:core:datastore` | Preferences DataStore implementation of `KnownDeviceRepository` (device id + name only) | file path only |
+| `:core:designsystem` | Material 3 theme, shared Compose primitives, error copy | dynamic colour (Android 12+) |
+| `:core:common` | Hex/decimal/clock formatting, logging facade, dispatcher and application-scope qualifiers | `Log` / `NSLog`, `Dispatchers.IO` |
+| `:domain` | Models, repository/scanner/GATT interfaces, use cases, de-duplication, sorting and operation rules | **none — `commonMain` only** (one `expect` for `SecurityException`) |
+| `:domain:testing` | Shared fakes, `assertThat` assertions and the Main-dispatcher helper for every module's `commonTest` | none |
 
-`:domain` is a `java-library`/Kotlin JVM module: it *cannot* reference `BluetoothDevice`,
-`ScanResult`, `BluetoothGatt`, `Context` or Compose, because the Android SDK is not on its compile
-classpath. The
-layering rule is enforced by the build, not by convention.
+`:domain` only has `commonMain` code: it *cannot* reference `BluetoothDevice`, `ScanResult`,
+`BluetoothGatt`, `CBPeripheral`, `Context` or Compose, because it has to compile for both targets
+with neither SDK's Bluetooth API available in common code. Platform Bluetooth types never leave
+`:core:bluetooth`'s `androidMain` / `iosMain` source sets. The layering rule is enforced by the
+build, not by convention.
+
+### Android and iOS
+
+Both platforms run the same ViewModels, use cases, mappers and Compose screens. What differs is
+confined to the platform source sets, and to these behaviours:
+
+| | Android | iOS |
+|---|---|---|
+| Device id | hardware (MAC) address | `CBPeripheral.identifier`, a UUID stable on that phone only — **`BleDevice.id` / `KnownDevice.id` are platform-opaque** |
+| Reaching the known device without a scan | `getRemoteDevice(address)` | `retrievePeripherals(withIdentifiers:)` |
+| Permissions | `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT` (location below API 31) | one authorization (`NSBluetoothAlwaysUsageDescription`), prompted by the system when the `CBCentralManager` is created |
+| Turning Bluetooth on | system dialog (`ACTION_REQUEST_ENABLE`) | the app cannot open Bluetooth settings; the button re-triggers the CoreBluetooth power alert (a throwaway `CBCentralManager` with `ShowPowerAlert`), whose Settings button leads there |
+| Adapter state | synchronous | asynchronous: `UNKNOWN` until `centralManagerDidUpdateState` |
+| Notifications | `setCharacteristicNotification` + CCCD write | `setNotifyValue` (writes the CCCD itself) |
+| Disconnect callback | only the status tells requested from unexpected | fires for both; `IosBleGattClient` tracks what it asked for so `errors()` still emits **only unexpected** losses |
+| MTU request, bonding API, GATT cache refresh | available (not used) | not available |
 
 ---
 
@@ -79,7 +103,7 @@ sequenceDiagram
     participant UI as ScannerScreen (Compose)
     participant VM as ScannerViewModel
     participant UC as StartBleScanUseCase
-    participant Repo as AndroidBleScanRepository
+    participant Repo as DefaultBleScanRepository
     participant Scanner as AndroidBleScanner
     participant OS as BluetoothLeScanner
 
@@ -298,7 +322,7 @@ BluetoothGattCallback      (binder thread, :core:bluetooth)
         ↓                  StateFlow / SharedFlow / CompletableDeferred
 AndroidBleGattClient       one connection, one operation queue
         ↓                  BleGattClient  (interface, :domain)
-AndroidBleGattRepository   preconditions, failures → Result<T>
+DefaultBleGattRepository   preconditions, failures → Result<T>
         ↓                  BleGattRepository (interface, :domain)
 Use cases                  property checks, write-mode choice, filtering
         ↓                  StateFlow / Flow / suspend
@@ -318,7 +342,7 @@ sequenceDiagram
     participant UI as GattInspectorScreen
     participant VM as GattInspectorViewModel
     participant UC as ReadCharacteristicUseCase
-    participant Repo as AndroidBleGattRepository
+    participant Repo as DefaultBleGattRepository
     participant Client as AndroidBleGattClient
     participant Queue as GattOperationQueue
     participant OS as BluetoothGatt
@@ -450,8 +474,9 @@ Verbose payload logging is limited to debug builds (`BleLog.isDebug = BuildConfi
 
 ## Testing
 
-No test needs Bluetooth hardware. `FakeBleScanner` (published from `:domain` as test fixtures)
-emits deterministic advertisements, and the scan timeout is exercised on the coroutine test
+No test needs Bluetooth hardware. The suites live in `commonTest` and run twice: on the JVM
+(Android host tests) and on the iOS simulator (Kotlin/Native). `FakeBleScanner` (from
+`:domain:testing`, the multiplatform replacement of Gradle test fixtures) emits deterministic advertisements, and the scan timeout is exercised on the coroutine test
 scheduler's virtual clock.
 
 `FakeBleGattClient` does the same for the connection side: connections, reads, writes, CCCD
@@ -459,23 +484,28 @@ writes, notifications and every failure mode are driven by the test, never by a 
 
 | Suite | What it covers |
 |---|---|
-| `:domain` (JVM) | de-duplication, RSSI updates, name/advertising merge, discovery order, sorting, signal buckets, scan start/stop, timeout completion, error propagation, session store |
+| `:domain` | de-duplication, RSSI updates, name/advertising merge, discovery order, sorting, signal buckets, scan start/stop, timeout completion, error propagation, session store |
 | `:domain` touch & reconnect | TOUCH_ON/TOUCH_OFF pairing, unknown/negative durations, TOUCH_INTENSITY parsing (malformed/out of range), peak/average statistics and per-touch reset, per-connection tracker reset, back-off policy, retryable errors, reconnect success/retry/give-up/cancel |
 | `:domain` GATT | initial disconnected state, connecting → connected, service discovery (populated, empty, unknown UUIDs), connection failure/timeout, disconnect, unexpected disconnect, read success/failure/timeout/while-disconnected, unknown characteristic, property validation for read/write/subscribe, write mode selection, notification enable/disable, notification streams, link lost while subscribed |
-| `:core:bluetooth` | **operation queue**: sequential execution, second operation waits, failure does not block the queue, rejected operation, timeout without deadlock, disconnect clears pending and queued work; property bit-mask decoding, GATT status mapping, SIG UUID names, scan error codes |
+| `:core:bluetooth` | **operation queue**: sequential execution, second operation waits, failure does not block the queue, rejected operation, timeout without deadlock, disconnect clears pending and queued work; property bit-mask decoding, GATT status mapping, SIG UUID names, scan error codes (Android host tests); CoreBluetooth UUID expansion, property bits, ATT / disconnect error mapping, manufacturer data split, `NSData` round trip (`iosTest`) |
 | `:core:common` | hex formatting and parsing (valid, malformed, round-trip), printable-UTF-8 detection |
 | `:domain` known device | scan-result merge, auto-connect policy (once, Bluetooth ready, idle link), remembering on connection, replacement by another device, name kept without a scan, scan update without duplicate, storage failure; forgetting (link closed first, other device's link kept, nothing to forget, storage failure), a forgotten device not re-saved by a scan but remembered again on connection |
-| `:core:datastore` | real DataStore file: empty start, save/read back, replacement (name included), survives restart, observers, unreadable file, forget (name included, across restart) |
+| `:core:datastore` (JVM only) | real DataStore file: empty start, save/read back, replacement (name included), survives restart, observers, unreadable file, forget (name included, across restart) |
 | `:feature:scanner` | ViewModel: initial state, start/stop, discovery, RSSI update without duplication, timeout, sorting, Bluetooth off mid-scan, no auto-restart, permission denial/permanent denial/revocation, scan failure, retry, session reset; known device shown without scan, single auto-connect, Bluetooth off / no permission, manual connect/failure/cancel, available vs unavailable, no duplicate, disconnect, lost link, ownership on teardown; forget (connected, disconnected, while connecting, listed again by a scan without auto-connect, storage failure, busy state ignores a second tap); status mapping |
 | `:feature:device-details` | advertising, hardware event and connection-status mapping; ViewModel: connect state transitions, failure/timeout/service-discovery copy, double-connect ignored, disconnect, link lost, bounded reconnection (back-off, give up, cancel on disconnect/leave/Bluetooth off), subscription restored after reconnect, touch duration, live intensity and touch statistics, connection to another device, teardown on leaving the screen, known-device fallback, a link it did not open is kept |
 | `:feature:gatt-inspector` | ViewModel: service naming and expansion, read value/decoding, read failure, valid and invalid hex writes, write failure, notification on/off, incoming values (newest first), subscription failure, disconnect clearing state; standard-characteristic decoding rules |
 | Instrumented (Compose) | scanner list and states, known device card (connect, available without duplicate, open/disconnect, cancel, unavailable, Bluetooth off, forget, disabled while forgetting, forgotten device listed as a scan result); details rendering, connect/inspector actions; inspector services, characteristics, values, actions, disabled busy actions, unknown UUIDs, notification list, empty/discovering/disconnected states |
 
 ```bash
-./gradlew test testDebugUnitTest      # 302 unit tests
-./gradlew connectedDebugAndroidTest   # 40 Compose UI tests (API ≤ 36 emulator/device)
+./gradlew test                        # 318 unit tests on the JVM (testAndroidHostTest)
+./gradlew iosSimulatorArm64Test       # the common suites + iOS mapper tests on the iOS simulator
+./gradlew connectedAndroidDeviceTest  # Compose UI tests (API ≤ 36 emulator/device)
 ./gradlew lintDebug                   # static analysis
 ```
+
+Assertions read like Truth (`assertThat(x).isEqualTo(y)`) but come from a small `kotlin.test`
+based helper in `:domain:testing`, because Truth and JUnit rules are JVM-only. Test names must not
+contain commas: Kotlin/Native rejects them.
 
 ---
 
@@ -494,8 +524,8 @@ writes, notifications and every failure mode are driven by the test, never by a 
   common bug of showing users a dead-end settings prompt on first launch.
 * **Adapter state merged into the scan.** Turning Bluetooth off during a scan fails the flow at the
   repository level, so every consumer is cancelled consistently instead of hanging silently.
-* **Convention plugins.** Build logic lives in `build-logic/` (`myblesense.android.feature`,
-  `myblesense.hilt`, …), so module build files stay a handful of lines each.
+* **Convention plugins.** Build logic lives in `build-logic/` (`myblesense.kmp.library`,
+  `myblesense.kmp.compose`, `myblesense.kmp.feature`, …), so module build files stay a handful of lines each.
 * **A GATT queue that cannot wedge.** Timeout, cancellation and disconnect all release the lock and
   clear the pending continuation, so one unanswered request cannot disable every later operation —
   the failure mode most hand-rolled BLE queues ship with.
@@ -581,5 +611,19 @@ Then: tap a device → **Connect** → **Open GATT Inspector** → expand a serv
 characteristic → **Read**, write a hex value, or switch notifications on. Leaving the details
 screen disconnects.
 
-BLE needs real hardware: the emulator has no Bluetooth adapter, so scanning and connecting only
-work on a physical device. The unit and Compose tests, however, run anywhere.
+### iOS
+
+```bash
+open iosApp/iosApp.xcodeproj          # then Run; or from the command line:
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone 17' build
+```
+
+Requires Xcode (with `xcode-select` pointing at it, or `DEVELOPER_DIR` set). The Xcode build runs
+`./gradlew :shared:app:embedAndSignAppleFrameworkForXcode` to compile the Kotlin code into the
+static `Shared` framework. For a physical iPhone, pick your team under *Signing & Capabilities*.
+iOS asks for the Bluetooth permission on first launch.
+
+BLE needs real hardware on both platforms: neither the Android emulator nor the iOS simulator has
+a Bluetooth adapter (the simulator reports Bluetooth as unsupported), so scanning and connecting
+only work on a physical device. The unit and Compose tests, however, run anywhere.

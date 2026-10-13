@@ -1,19 +1,14 @@
 plugins {
-    alias(libs.plugins.myblesense.jvm.library)
-    `java-test-fixtures`
+    alias(libs.plugins.myblesense.kmp.library)
 }
 
-dependencies {
-    api(libs.kotlinx.coroutines.core)
-    api(libs.javax.inject)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.truth)
-    testImplementation(libs.turbine)
-    testImplementation(libs.kotlinx.coroutines.test)
-
-    testFixturesApi(libs.kotlinx.coroutines.core)
-    // Shared test infrastructure (fakes, the Main dispatcher rule) is consumed by every module.
-    testFixturesApi(libs.junit)
-    testFixturesApi(libs.kotlinx.coroutines.test)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.kotlinx.coroutines.core)
+        }
+        commonTest.dependencies {
+            implementation(projects.domain.testing)
+        }
+    }
 }

@@ -1,8 +1,6 @@
 plugins {
     alias(libs.plugins.myblesense.android.application)
     alias(libs.plugins.myblesense.android.compose)
-    alias(libs.plugins.myblesense.hilt)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -31,21 +29,12 @@ android {
 }
 
 dependencies {
-    implementation(projects.core.bluetooth)
+    // The whole app (navigation graph, DI graph, screens) is the shared KMP module; this module
+    // is only the Android shell around it.
+    implementation(projects.shared.app)
     implementation(projects.core.common)
-    implementation(projects.core.datastore)
-    implementation(projects.core.designsystem)
-    implementation(projects.domain)
-    implementation(projects.feature.scanner)
-    implementation(projects.feature.deviceDetails)
-    implementation(projects.feature.gattInspector)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.kotlinx.serialization.json)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.truth)
+    implementation(libs.koin.android)
 }

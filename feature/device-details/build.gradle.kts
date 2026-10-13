@@ -1,16 +1,25 @@
 plugins {
-    alias(libs.plugins.myblesense.android.feature)
-    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.myblesense.kmp.feature)
 }
 
-android {
-    defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+kotlin {
+    android {
+        // Compose Multiplatform's resource tasks for the device tests need Android resources on.
+        androidResources { enable = true }
 
-    namespace = "com.radustavila.myblesense.feature.devicedetails"
-}
+        // Compose UI tests; they need an API <= 36 device, see CLAUDE.md.
+        withDeviceTest {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
+    }
 
-dependencies {
-    implementation(libs.kotlinx.serialization.json)
-
-    testImplementation(testFixtures(projects.domain))
+    sourceSets {
+        getByName("androidDeviceTest").dependencies {
+            implementation(libs.androidx.test.ext.junit)
+            implementation(libs.truth)
+            implementation(project.dependencies.platform(libs.androidx.compose.bom))
+            implementation(libs.androidx.compose.ui.test.junit4)
+            implementation(libs.androidx.compose.ui.test.manifest)
+        }
+    }
 }
